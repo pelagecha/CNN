@@ -7,13 +7,13 @@ NUM_CHANNELS = 3
 NUM_CLASSES = 10
 # can change
 POOL_SIZE = 2
-KERNEL_SIZE = 6
-NUM_FILTERS1 = 32  # Increased number of filters
-NUM_FILTERS2 = 64  # Increased number of filters
-NUM_FILTERS3 = 128 # Added an additional convolutional layer
-HIDDEN_UNITS1 = 256  # Increased hidden units
-HIDDEN_UNITS2 = 128   # Reduced hidden units to balance
-DROPOUT_PROB = 0.4    # Increased dropout for regularization
+KERNEL_SIZE = 4
+NUM_FILTERS1 = 64  # Increased number of filters
+NUM_FILTERS2 = 128  # Increased number of filters
+NUM_FILTERS3 = 256 # Added an additional convolutional layer
+HIDDEN_UNITS1 = 512  # Increased hidden units
+HIDDEN_UNITS2 = 256   # Reduced hidden units to balance
+DROPOUT_PROB = 0.35    # Increased dropout for regularization
 
 class CNN(nn.Module):
     def __init__(self):

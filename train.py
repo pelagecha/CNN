@@ -14,8 +14,8 @@ device = helpers.select_processor() # selects the device that is compatible with
 model = CNN().to(device)          # model that's used
 
 # hyperparams
-num_epochs=25
-batch_size=64
+num_epochs=100
+batch_size=256
 lr=0.001
 
 # Lists to store loss and accuracy
