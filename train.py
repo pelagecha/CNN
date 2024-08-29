@@ -9,15 +9,15 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 import helpers
-from models.model66 import CNN # select the model to use
+from models.model80 import CNN # select the model to use
 from tqdm import tqdm
 
 device = helpers.select_processor() # selects the device that is compatible with your system
 model = CNN().to(device)          # model that's used
 
 # hyperparams
-num_epochs=1
-batch_size=128
+num_epochs=500
+batch_size=256
 lr=0.001
 
 
