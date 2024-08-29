@@ -9,13 +9,14 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 import helpers
-from models.model50 import CNN # select the model to use
+from models.model66 import CNN # select the model to use
+from tqdm import tqdm
 
 device = helpers.select_processor() # selects the device that is compatible with your system
 model = CNN().to(device)          # model that's used
 
 # hyperparams
-num_epochs=20
+num_epochs=1
 batch_size=128
 lr=0.001
 
@@ -58,63 +59,68 @@ else:
 for epoch in range(num_epochs):
     running_loss = 0.0
     model.train()  # Set model to training mode
-    for i, (images, labels) in enumerate(train_loader):
-        images = images.to(device)
-        labels = labels.to(device)
+    
+    # Initialize the progress bar for the epoch
+    with tqdm(total=len(train_loader), desc=f'Epoch [{epoch + 1}/{num_epochs}]', unit='step') as pbar:
+        for i, (images, labels) in enumerate(train_loader):
+            images = images.to(device)
+            labels = labels.to(device)
 
-        # Forward pass
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+            # Forward pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
 
-        # Backward pass
-        optimiser.zero_grad()
-        loss.backward()
+            # Backward pass
+            optimiser.zero_grad()
+            loss.backward()
 
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-        # Optimization step
-        optimiser.step()
+            # Optimization step
+            optimiser.step()
 
-        # Accumulate loss
-        running_loss += loss.item() * images.size(0)
+            # Accumulate loss
+            running_loss += loss.item() * images.size(0)
 
-        # Print progress
-        if (i + 1) % (n_total_steps // 10) == 0:
-            avg_loss = running_loss / ((i + 1) * batch_size)
-            print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {avg_loss:.4f}")
+            # Update progress bar
+            pbar.update(1)
+            pbar.set_postfix({'Loss': f'{loss.item():.4f}'})
 
     # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)
     train_losses.append(epoch_loss)
-    print(f"Epoch [{epoch + 1}/{num_epochs}] finished. Average Loss: {epoch_loss:.3f}")
-
-    # Evaluate on the test dataset
-    model.eval()
-    n_correct = 0
-    n_samples = 0
-    with torch.no_grad():
-        for images, labels in test_loader:
-            images = images.to(device)
-            labels = labels.to(device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs, 1)
-            n_samples += labels.size(0)
-            n_correct += (predicted == labels).sum().item()
-
-    test_accuracy = 100 * n_correct / n_samples
-    test_accuracies.append(test_accuracy)
-    print(f"Accuracy of the network: {test_accuracy:.2f}%")
 
     # Step the scheduler after each epoch
     scheduler.step()
+
+
+
+# Evaluate on the test dataset
+model.eval()
+n_correct = 0
+n_samples = 0
+with torch.no_grad():
+    for images, labels in test_loader:
+        images = images.to(device)
+        labels = labels.to(device)
+        outputs = model(images)
+        _, predicted = torch.max(outputs, 1)
+        n_samples += labels.size(0)
+        n_correct += (predicted == labels).sum().item()
+
+test_accuracy = 100 * n_correct / n_samples
+test_accuracies.append(test_accuracy)
+
+# Print summary of the epoch
+print(f'\nTraining finished.')
+print(f'  Average Loss: {epoch_loss:.4f}')
+print(f'  Accuracy: {test_accuracy:.2f}%\n')
 
 # Save model and accuracy only if the new accuracy is higher
 helpers.save(model.state_dict(), model_path, test_accuracy, accuracy_path)
 
 print("Finished Training")
 
-# Plotting the loss and accuracy curves
+# Plotting the loss curve
 helpers.show_loss(train_losses)
-helpers.show_accuracy(test_accuracies)
-
