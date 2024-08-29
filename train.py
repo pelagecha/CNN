@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,15 +9,19 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 import helpers
-from models.model80 import CNN # select the model to use
+from models.model50 import CNN # select the model to use
 
 device = helpers.select_processor() # selects the device that is compatible with your system
 model = CNN().to(device)          # model that's used
 
 # hyperparams
-num_epochs=100
-batch_size=256
+num_epochs=3
+batch_size=128
 lr=0.001
+
+
+# Model Paths
+model_path, accuracy_path = helpers.model_dirs(model.model_name())
 
 # Lists to store loss and accuracy
 train_losses = []
@@ -41,9 +46,18 @@ optimiser = torch.optim.AdamW(model.parameters(), lr=lr)
 scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=10, gamma=0.7)
 n_total_steps = len(train_loader)
 
+
+# Check if model exists and load it
+if os.path.exists(model_path):
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    print(f"Loaded existing model from {model_path}")
+else:
+    print("No existing model found. Starting from scratch.")
+
 # Training loop
 for epoch in range(num_epochs):
     running_loss = 0.0
+    model.train()  # Set model to training mode
     for i, (images, labels) in enumerate(train_loader):
         images = images.to(device)
         labels = labels.to(device)
@@ -66,80 +80,41 @@ for epoch in range(num_epochs):
         running_loss += loss.item() * images.size(0)
 
         # Print progress
-        if (i + 1) % (n_total_steps // 10) == 0:  # Print every 10% of the way through
+        if (i + 1) % (n_total_steps // 10) == 0:
             avg_loss = running_loss / ((i + 1) * batch_size)
             print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {avg_loss:.4f}")
 
     # Compute average loss for the epoch
-    epoch_loss = running_loss / len(train_dataset)  # Use dataset size instead of loader size
+    epoch_loss = running_loss / len(train_dataset)
     train_losses.append(epoch_loss)
     print(f"Epoch [{epoch + 1}/{num_epochs}] finished. Average Loss: {epoch_loss:.3f}")
+
+    # Evaluate on the test dataset
+    model.eval()
+    n_correct = 0
+    n_samples = 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            n_samples += labels.size(0)
+            n_correct += (predicted == labels).sum().item()
+
+    test_accuracy = 100 * n_correct / n_samples
+    test_accuracies.append(test_accuracy)
+    print(f"Accuracy of the network: {test_accuracy:.2f}%")
 
     # Step the scheduler after each epoch
     scheduler.step()
 
-
+# Save model and accuracy only if the new accuracy is higher
+helpers.save(model.state_dict(), model_path, test_accuracy, accuracy_path)
 
 print("Finished Training")
-PATH = f'./trained/{model.model_name()}'
-torch.save(model.state_dict(), PATH)
 
-
-
-with torch.no_grad():
-    n_correct = 0
-    n_samples = 0
-    n_class_correct = [0 for _ in range(10)]
-    n_class_samples = [0 for _ in range(10)]
-
-    for images, labels in test_loader:
-        images = images.to(device)
-        labels = labels.to(device)
-        outputs = model(images)
-
-        _, predicted = torch.max(outputs, 1)
-        n_samples += labels.size(0)
-        n_correct += (predicted == labels).sum().item()
-
-        # Update class-wise statistics
-        for i in range(labels.size(0)):  # Iterate over the batch
-            label = labels[i].item()  # Convert tensor to Python integer
-            pred = predicted[i].item()  # Convert tensor to Python integer
-            if label == pred:
-                n_class_correct[label] += 1
-            n_class_samples[label] += 1
-
-    # Compute overall accuracy
-    acc = 100 * n_correct / n_samples
-    test_accuracies.append(acc)
-    print(f"Accuracy of the network: {acc}%")
-
-    # Compute per-class accuracy
-    for i in range(10):
-        if n_class_samples[i] > 0:
-            acc = 100 * n_class_correct[i] / n_class_samples[i]
-            print(f"Accuracy of {classes[i]}: {acc}%")
-        else:
-            print(f"Accuracy of {classes[i]}: No samples found")
-
-
-
-# Plotting the loss curve
-plt.figure(figsize=(10, 5))
-plt.plot(train_losses, label='Training Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.title('Training Loss over Epochs')
-plt.legend()
-plt.show()
-
-# Plotting the accuracy curve
-plt.figure(figsize=(10, 5))
-plt.plot(test_accuracies, label='Test Accuracy', marker='o')
-plt.xlabel('Epochs')
-plt.ylabel('Accuracy (%)')
-plt.title('Test Accuracy over Epochs')
-plt.legend()
-plt.grid(True)  # Add grid for better readability
-plt.show()
+# Plotting the loss and accuracy curves
+helpers.show_loss(train_losses)
+helpers.show_accuracy(test_accuracies)
 

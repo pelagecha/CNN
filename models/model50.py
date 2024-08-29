@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class Conv1(nn.Module):
+class CNN(nn.Module):
     def __init__(self):
         # convolutional layers
-        super(Conv1, self).__init__()
+        super(CNN, self).__init__()
         self.conv1 = nn.Conv2d(3, 12, 5) # input channels (in this case 3 bc rgb), out_channels, kernel size nxn
         self.pool = nn.MaxPool2d(2, 2)  # kernel size, stride
         self.conv2 = nn.Conv2d(12, 24, 5)
@@ -25,3 +25,7 @@ class Conv1(nn.Module):
         x = self.fc3(x)
         # softmax already applied with "criterion"
         return x
+    
+    @staticmethod
+    def model_name():
+        return "model50"

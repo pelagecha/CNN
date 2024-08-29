@@ -6,31 +6,14 @@ import torchvision.transforms as transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
-
-# Define the model architecture (same as used during training)
-class ConvNet(nn.Module):
-    def __init__(self):
-        super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16*5*5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16*5*5)  # Flatten the output
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
+from models.model50 import CNN
+import helpers
 # Initialize the model and load the saved weights
-model = ConvNet()
-PATH = './models'
-model.load_state_dict(torch.load(PATH, weights_only=True))
+model = CNN()
+device = helpers.select_processor()
+PATH = 'trained/model80'
+model_path, _ = helpers.model_dirs(model.model_name())
+model.load_state_dict(torch.load(model_path, weights_only=False, map_location=device))
 model.eval()  # Set the model to evaluation mode
 
 # Define transformations
@@ -65,7 +48,6 @@ def evaluate_model(loader):
     return accuracy
 
 # Evaluate the model on the test set
-device = torch.device('mps')
 model.to(device)
 test_accuracy = evaluate_model(test_loader)
 print(f'Accuracy of the network on the 10000 test images: {test_accuracy:.2f}%')
