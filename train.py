@@ -7,11 +7,14 @@ import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
+import helpers
+from models.model80 import CNN # select the model to use
 
-device = torch.device('mps')
+device = helpers.select_processor() # selects the device that is compatible with your system
+model = CNN().to(device)          # model that's used
 
 # hyperparams
-num_epochs=10
+num_epochs=25
 batch_size=64
 lr=0.001
 
@@ -19,7 +22,13 @@ lr=0.001
 train_losses = []
 test_accuracies = []
 
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+transform = transforms.Compose([ # addded random cropping
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomCrop(32, padding=4),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
+
 train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
 test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -27,27 +36,30 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, s
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-
-
-from models.model80 import CNN # model to use
-model = CNN().to(device)
-
 criterion = nn.CrossEntropyLoss()
 optimiser = torch.optim.AdamW(model.parameters(), lr=lr)
+scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=10, gamma=0.7)
 n_total_steps = len(train_loader)
 
-# training
+# Training loop
 for epoch in range(num_epochs):
     running_loss = 0.0
     for i, (images, labels) in enumerate(train_loader):
         images = images.to(device)
         labels = labels.to(device)
 
+        # Forward pass
         outputs = model(images)
         loss = criterion(outputs, labels)
 
+        # Backward pass
         optimiser.zero_grad()
         loss.backward()
+
+        # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+        # Optimization step
         optimiser.step()
 
         # Accumulate loss
@@ -55,14 +67,21 @@ for epoch in range(num_epochs):
 
         # Print progress
         if (i + 1) % (n_total_steps // 10) == 0:  # Print every 10% of the way through
-            print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {running_loss / ((i + 1) * batch_size):.4f}")
+            avg_loss = running_loss / ((i + 1) * batch_size)
+            print(f"Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{n_total_steps}], Loss: {avg_loss:.4f}")
 
+    # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)  # Use dataset size instead of loader size
     train_losses.append(epoch_loss)
     print(f"Epoch [{epoch + 1}/{num_epochs}] finished. Average Loss: {epoch_loss:.3f}")
 
+    # Step the scheduler after each epoch
+    scheduler.step()
+
+
+
 print("Finished Training")
-PATH = f'./{model.model_name()}'
+PATH = f'./trained/{model.model_name()}'
 torch.save(model.state_dict(), PATH)
 
 

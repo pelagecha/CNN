@@ -13,7 +13,7 @@ NUM_FILTERS2 = 64  # Increased number of filters
 NUM_FILTERS3 = 128 # Added an additional convolutional layer
 HIDDEN_UNITS1 = 256  # Increased hidden units
 HIDDEN_UNITS2 = 128   # Reduced hidden units to balance
-DROPOUT_PROB = 0.3    # Increased dropout for regularization
+DROPOUT_PROB = 0.4    # Increased dropout for regularization
 
 class CNN(nn.Module):
     def __init__(self):
@@ -51,9 +51,9 @@ class CNN(nn.Module):
         x = self._forward_conv(x)
         x = x.view(x.size(0), -1)  # Flatten the tensor
 
-        x = F.relu(self.fc1(x))
+        x = F.leaky_relu(self.fc1(x), negative_slope=0.01)
         x = self.dropout(x)  # Apply dropout
-        x = F.relu(self.fc2(x))
+        x = F.leaky_relu(self.fc2(x), negative_slope=0.01)
         x = self.dropout(x)  # Apply dropout
         x = self.fc3(x)
         return x
