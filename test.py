@@ -16,8 +16,8 @@ with open('settings.json', 'r') as f: dataset_settings = json.load(f)
 settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
 
 device = helpers.select_processor()                           # Select compatible device
-model = Model(INPUT_SIZE=settings["input_size"], 
-            NUM_CLASSES=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
+model = Model(input_size=settings["input_size"], 
+            num_classes=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
 device = helpers.select_processor()
 PATH = 'trained/model80'
 model_path, _ = helpers.model_dirs(model.model_name())
