@@ -2,46 +2,47 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-POOL_SIZE = 2
-KERNEL_SIZE = 4
-NUM_FILTERS1 = 64  # Increased number of filters
-NUM_FILTERS2 = 128  # Increased number of filters
-NUM_FILTERS3 = 256 # Added an additional convolutional layer
-HIDDEN_UNITS1 = 512  # Increased hidden units
-HIDDEN_UNITS2 = 256   # Reduced hidden units to balance
-DROPOUT_PROB = 0.35    # Increased dropout for regularization
+# Hyperparameters
+pool_size = 2
+kernel_size = 4
+num_filters1 = 64  # Increased number of filters
+num_filters2 = 128  # Increased number of filters
+num_filters3 = 256  # Added an additional convolutional layer
+hidden_units1 = 512  # Increased hidden units
+hidden_units2 = 256  # Reduced hidden units to balance
+dropout_prob = 0.35  # Increased dropout for regularization
 
 class Model(nn.Module):
-    def __init__(self, INPUT_SIZE, NUM_CLASSES):
+    def __init__(self, input_size, num_classes):
         super(Model, self).__init__()
 
         # Define model parameters
-        self.INPUT_SIZE = INPUT_SIZE
-        self.NUM_CLASSES = NUM_CLASSES
+        self.input_size = input_size
+        self.num_classes = num_classes
         
         # Convolutional layers
-        self.conv1 = nn.Conv2d(INPUT_SIZE[0], NUM_FILTERS1, KERNEL_SIZE, padding=1)
-        self.conv2 = nn.Conv2d(NUM_FILTERS1, NUM_FILTERS2, KERNEL_SIZE, padding=1)
-        self.conv3 = nn.Conv2d(NUM_FILTERS2, NUM_FILTERS3, KERNEL_SIZE, padding=1) # Added
+        self.conv1 = nn.Conv2d(input_size[0], num_filters1, kernel_size, padding=1)
+        self.conv2 = nn.Conv2d(num_filters1, num_filters2, kernel_size, padding=1)
+        self.conv3 = nn.Conv2d(num_filters2, num_filters3, kernel_size, padding=1)  # Added
 
-        self.pool = nn.MaxPool2d(POOL_SIZE, POOL_SIZE)
+        self.pool = nn.MaxPool2d(pool_size, pool_size)
 
         # Compute the size dynamically
         self._initialize_layers()
 
     def _initialize_layers(self):
         # Create a dummy input tensor to compute the output size
-        channels, x, y = self.INPUT_SIZE
+        channels, x, y = self.input_size
         dummy_input = torch.zeros(1, channels, x, y)
         dummy_output = self._forward_conv(dummy_input)
 
         # Compute the input size to the fully-connected layer
         num_features = dummy_output.numel()
-        self.fc1 = nn.Linear(num_features, HIDDEN_UNITS1)
-        self.fc2 = nn.Linear(HIDDEN_UNITS1, HIDDEN_UNITS2)
-        self.fc3 = nn.Linear(HIDDEN_UNITS2, self.NUM_CLASSES)
+        self.fc1 = nn.Linear(num_features, hidden_units1)
+        self.fc2 = nn.Linear(hidden_units1, hidden_units2)
+        self.fc3 = nn.Linear(hidden_units2, self.num_classes)
 
-        self.dropout = nn.Dropout(p=DROPOUT_PROB)
+        self.dropout = nn.Dropout(p=dropout_prob)
 
     def _forward_conv(self, x):
         x = self.pool(F.relu(self.conv1(x)))
