@@ -52,7 +52,7 @@ def save(model_state_dict, model_path, test_accuracy, accuracy_path):
 
 
 def transform_init(dataset_name):
-    with open('datasets.json', 'r') as f: 
+    with open('settings.json', 'r') as f: 
         dataset_settings = json.load(f)
 
     settings = dataset_settings[dataset_name] # settings for the dataset that's used, like image dimensions etc

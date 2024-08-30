@@ -16,13 +16,13 @@ import numpy as np
 from tqdm import tqdm # Progress bar for loops
 import helpers                                          
 
-from models.model50 import CNN # select the model to use
+from models.model66 import CNN # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
 dataset_name = "CIFAR10"                                      # Dataset to use ("CIFAR10" or "MNIST")
 
-with open('datasets.json', 'r') as f: dataset_settings = json.load(f)
+with open('settings.json', 'r') as f: dataset_settings = json.load(f)
 settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
 
 device = helpers.select_processor()                           # Select compatible device
@@ -105,9 +105,12 @@ for epoch in range(num_epochs):
             # Accumulate loss
             running_loss += loss.item() * images.size(0)
 
+            # Compute average loss for the current batch
+            average_loss = running_loss / ((i + 1) * train_loader.batch_size)
+
             # Update progress bar
             pbar.update(1)
-            pbar.set_postfix({'Loss': f'{loss.item():.4f}'})
+            pbar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
 
     # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)

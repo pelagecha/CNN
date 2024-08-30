@@ -12,7 +12,7 @@ import json
 
 dataset_name = "CIFAR10"                                      # Dataset to use ("CIFAR10" or "MNIST")
 
-with open('datasets.json', 'r') as f: dataset_settings = json.load(f)
+with open('settings.json', 'r') as f: dataset_settings = json.load(f)
 settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
 
 device = helpers.select_processor()                           # Select compatible device

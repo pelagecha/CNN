@@ -62,10 +62,8 @@ By following these steps, you will set up your environment and ensure that all d
         ```json
 
         "CIFAR10": {
-            # ...
             "batch_size": 256,
-            "learning_rate": 0.005,
-            # ...
+            "learning_rate": 0.001,
             }
         ```
 
