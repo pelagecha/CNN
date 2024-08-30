@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Define model parameters
-NUM_CHANNELS = 3
-NUM_CLASSES = 10
-# can change
 POOL_SIZE = 2
 KERNEL_SIZE = 4
 NUM_FILTERS1 = 64  # Increased number of filters
@@ -16,10 +12,15 @@ HIDDEN_UNITS2 = 256   # Reduced hidden units to balance
 DROPOUT_PROB = 0.35    # Increased dropout for regularization
 
 class CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, INPUT_SIZE, NUM_CLASSES):
         super(CNN, self).__init__()
+
+        # Define model parameters
+        self.INPUT_SIZE = INPUT_SIZE
+        self.NUM_CLASSES = NUM_CLASSES
+        
         # Convolutional layers
-        self.conv1 = nn.Conv2d(NUM_CHANNELS, NUM_FILTERS1, KERNEL_SIZE, padding=1)
+        self.conv1 = nn.Conv2d(INPUT_SIZE[0], NUM_FILTERS1, KERNEL_SIZE, padding=1)
         self.conv2 = nn.Conv2d(NUM_FILTERS1, NUM_FILTERS2, KERNEL_SIZE, padding=1)
         self.conv3 = nn.Conv2d(NUM_FILTERS2, NUM_FILTERS3, KERNEL_SIZE, padding=1) # Added
 
@@ -30,14 +31,15 @@ class CNN(nn.Module):
 
     def _initialize_layers(self):
         # Create a dummy input tensor to compute the output size
-        dummy_input = torch.zeros(1, NUM_CHANNELS, 32, 32)
+        channels, x, y = self.INPUT_SIZE
+        dummy_input = torch.zeros(1, channels, x, y)
         dummy_output = self._forward_conv(dummy_input)
 
         # Compute the input size to the fully-connected layer
         num_features = dummy_output.numel()
         self.fc1 = nn.Linear(num_features, HIDDEN_UNITS1)
         self.fc2 = nn.Linear(HIDDEN_UNITS1, HIDDEN_UNITS2)
-        self.fc3 = nn.Linear(HIDDEN_UNITS2, NUM_CLASSES)
+        self.fc3 = nn.Linear(HIDDEN_UNITS2, self.NUM_CLASSES)
 
         self.dropout = nn.Dropout(p=DROPOUT_PROB)
 

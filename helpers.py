@@ -1,7 +1,8 @@
 import torch
 import os
 import matplotlib.pyplot as plt
-
+import json
+import torchvision.transforms as transforms
 
 def select_processor():
     if torch.backends.mps.is_available():
@@ -50,6 +51,59 @@ def save(model_state_dict, model_path, test_accuracy, accuracy_path):
         torch.save(test_accuracy, accuracy_path)
 
 
+def transform_init(dataset_name):
+    with open('datasets.json', 'r') as f: 
+        dataset_settings = json.load(f)
+
+    settings = dataset_settings[dataset_name] # settings for the dataset that's used, like image dimensions etc
+    transform_settings = settings["transform"]
+    input_size = settings["input_size"]
+    transform_list = []
+    
+    for augmentation in transform_settings["augmentations"]:
+        if augmentation == "RandomHorizontalFlip":
+            transform_list.append(transforms.RandomHorizontalFlip())
+        elif augmentation == "RandomCrop":
+            transform_list.append(transforms.RandomCrop(input_size[1], padding=4))
+        elif augmentation == "ToTensor":
+            transform_list.append(transforms.ToTensor())
+
+    # Add normalization as the last transform
+    transform_list.append(transforms.Normalize(
+        mean=transform_settings["normalize_mean"],
+        std=transform_settings["normalize_std"]
+    ))
+    return transform_list
+
+def eval(model, test_loader, device):
+    """
+    Evaluate the model on the test dataset.
+
+    Parameters:
+    - model: The model to evaluate.
+    - test_loader: DataLoader for the test dataset.
+    - device: The device (CPU or GPU) where the model and data should be located.
+
+    Returns:
+    - test_accuracy: The accuracy of the model on the test dataset.
+    """
+    model.eval()                        # Set the model to evaluation mode
+    n_correct = 0
+    n_samples = 0
+
+    with torch.no_grad():              # Disable gradient calculations
+        for images, labels in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            n_samples += labels.size(0)
+            n_correct += (predicted == labels).sum().item()
+
+    test_accuracy = 100 * n_correct / n_samples
+
+    return test_accuracy
+
 def show_loss(train_losses):
     """
     Plots the training loss curve.
@@ -81,3 +135,4 @@ def show_accuracy(test_accuracies):
     plt.legend()
     plt.grid(True)  # Add grid for better readability
     plt.show()
+

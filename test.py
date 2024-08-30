@@ -8,8 +8,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from models.model50 import CNN
 import helpers
-# Initialize the model and load the saved weights
-model = CNN()
+import json
+
+dataset_name = "CIFAR10"                                      # Dataset to use ("CIFAR10" or "MNIST")
+
+with open('datasets.json', 'r') as f: dataset_settings = json.load(f)
+settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
+
+device = helpers.select_processor()                           # Select compatible device
+model = CNN(INPUT_SIZE=settings["input_size"], 
+            NUM_CLASSES=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
 device = helpers.select_processor()
 PATH = 'trained/model80'
 model_path, _ = helpers.model_dirs(model.model_name())
@@ -32,24 +40,9 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4, shuffle=Tr
 # Define class names
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-# Function to evaluate the model
-def evaluate_model(loader):
-    model.eval()
-    n_correct = 0
-    n_samples = 0
-    with torch.no_grad():
-        for images, labels in loader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs, 1)
-            n_samples += labels.size(0)
-            n_correct += (predicted == labels).sum().item()
-    accuracy = 100.0 * n_correct / n_samples
-    return accuracy
-
 # Evaluate the model on the test set
 model.to(device)
-test_accuracy = evaluate_model(test_loader)
+test_accuracy = helpers.eval(model, test_loader, device)
 print(f'Accuracy of the network on the 10000 test images: {test_accuracy:.2f}%')
 
 # Function to visualize some test images and predictions
