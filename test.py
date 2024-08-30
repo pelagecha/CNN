@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
-from models.model50 import CNN
+from models.cnn50 import CNN
 import helpers
 import json
 

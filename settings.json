@@ -2,8 +2,6 @@
     "MNIST": {
         "input_size": [1, 28, 28],
         "num_classes": 10,
-        "batch_size": 256,
-        "learning_rate": 0.001,
         "transform": {
             "normalize_mean": [0.1307],
             "normalize_std": [0.3081],
@@ -13,8 +11,6 @@
     "CIFAR10": {
         "input_size": [3, 32, 32],
         "num_classes": 10,
-        "batch_size": 256,
-        "learning_rate": 0.001,
         "transform": {
             "normalize_mean": [0.5, 0.5, 0.5],
             "normalize_std": [0.5, 0.5, 0.5],

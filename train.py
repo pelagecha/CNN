@@ -16,7 +16,7 @@ import numpy as np
 from tqdm import tqdm # Progress bar for loops
 import helpers                                          
 
-from models.model66 import CNN # select the model to use
+from models.resnet80 import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
@@ -26,19 +26,19 @@ with open('settings.json', 'r') as f: dataset_settings = json.load(f)
 settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
 
 device = helpers.select_processor()                           # Select compatible device
-model = CNN(INPUT_SIZE=settings["input_size"], 
+model = Model(INPUT_SIZE=settings["input_size"], 
             NUM_CLASSES=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
 
 # Hyperparameters
-batch_size = settings["batch_size"]                           # Number of samples per batch
-lr = settings["learning_rate"]                                # Learning rate for the optimizer
+batch_size = 256                                              # Number of samples per batch
+lr = 0.001                                                    # Learning rate for the optimizer
 num_epochs = 5                                                # Total number of epochs for training
 
 # Loss Function
-criterion = nn.CrossEntropyLoss()                            # Loss function for multi-class classification tasks
+criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
 
 # Optimizer
-optimiser = torch.optim.AdamW(model.parameters(), lr=lr)     # AdamW optimizer with weight decay for regularization
+optimiser = torch.optim.AdamW(model.parameters(), lr=lr)      # AdamW optimizer with weight decay for regularization
 
 # Learning Rate Scheduler
 scheduler = torch.optim.lr_scheduler.StepLR(optimiser, 
