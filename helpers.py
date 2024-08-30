@@ -16,7 +16,7 @@ def select_processor():
 
 
 def model_dirs(model_name): # manage the paths for trained models
-    model_dir = f'./trained/{model_name}/'  # directory for the model
+    model_dir = f'./compiled/{model_name}/'  # directory for the model
     model_path = os.path.join(model_dir, f"{model_name}.pt")  # path to the model file
     accuracy_path = os.path.join(model_dir, f"{model_name}_accuracy.pt")  # path to the accuracy file
     os.makedirs(model_dir, exist_ok=True)
