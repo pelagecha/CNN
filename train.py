@@ -16,7 +16,7 @@ import numpy as np
 from tqdm import tqdm # Progress bar for loops
 import helpers                                          
 
-from models.residual_attention import Model # select the model to use
+from models.multihead_attention import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
@@ -32,7 +32,7 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 512                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 100                                             # Total number of epochs for training
+num_epochs = 50                                             # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
