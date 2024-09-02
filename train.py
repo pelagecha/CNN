@@ -20,7 +20,7 @@ from models.multihead_attention import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "CIFAR100"                                      # Dataset to use ("CIFAR10" or "MNIST")
+dataset_name = "MNIST"                                      # Dataset to use ("CIFAR10" or "MNIST")
 
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)
 settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
@@ -32,7 +32,7 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 512                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 100                                               # Total number of epochs for training
+num_epochs = 15                                               # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
@@ -56,8 +56,8 @@ train_losses = [] # stuff gor graphs
 warnings.filterwarnings("ignore", category=FutureWarning, message="You are using `torch.load` with `weights_only=False`")
 transform = transforms.Compose(helpers.transform_init(dataset_name))
 if dataset_name == "MNIST":
-    train_dataset = torchvision.datasets.mnist(root='./data', train=True, download=True, transform=transform)
-    test_dataset = torchvision.datasets.mnist(root='./data', train=False, download=True, transform=transform)
+    train_dataset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+    test_dataset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 elif dataset_name == "CIFAR10":
     train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
     test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)

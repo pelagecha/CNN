@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-#SBATCH --job-name=cifar10 # Job name for tracking
+#SBATCH --job-name=cifar100 # Job name for tracking
 #SBATCH --partition=falcon,gecko  # Partition you wish to use (see above for list)
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=12      # Number of CPU threads used by your job
+#SBATCH --cpus-per-task=8      # Number of CPU threads used by your job
 #SBATCH --gres=gpu:1           # Number of GPUs to use 
 #SBATCH --time=2-00:00:00      # Job time limit set to 2 days (48 hours)
 #
