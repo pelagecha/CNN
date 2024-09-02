@@ -30,9 +30,9 @@ model = Model(input_size=settings["input_size"],
             num_classes=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
 
 # Hyperparameters
-batch_size = 256                                              # Number of samples per batch
+batch_size = 512                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 100                                              # Total number of epochs for training
+num_epochs = 200                                              # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
