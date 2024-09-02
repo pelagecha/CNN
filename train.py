@@ -20,7 +20,7 @@ from models.multihead_attention import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "CIFAR10"                                      # Dataset to use ("CIFAR10" or "MNIST")
+dataset_name = "CIFAR100"                                      # Dataset to use ("CIFAR10" or "MNIST")
 
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)
 settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
@@ -32,7 +32,7 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 512                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 50                                             # Total number of epochs for training
+num_epochs = 100                                               # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
@@ -46,7 +46,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimiser,
                                              gamma=0.75)      # Factor by which the learning rate is reduced
 
 # Model Paths
-model_path, accuracy_path = helpers.model_dirs(model.model_name())  # Paths for saving model and accuracy
+model_path, accuracy_path = helpers.model_dirs(model.model_name(), dataset_name)  # Paths for saving model and accuracy
 train_losses = [] # stuff gor graphs
 # -------------------------------------------------------------------------------------------------------------
 
@@ -61,6 +61,9 @@ if dataset_name == "MNIST":
 elif dataset_name == "CIFAR10":
     train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
     test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+elif dataset_name == "CIFAR100":
+    train_dataset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform)
+    test_dataset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform)
 
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -134,7 +137,7 @@ helpers.save(model.state_dict(), model_path, test_accuracy, accuracy_path)
 
 print("Finished Training")
 with open("losses.txt", "a+") as f:
-    f.write(f"--{model.model_name()}-- at {test_accuracy:.2f}\n{train_losses}")
+    f.write(f"--{model.model_name()}-- at {test_accuracy:.2f}% accuracy and a {epoch_loss:.4f} loss\n{train_losses}\n")
 # Plotting the loss curve
 helpers.show_loss(train_losses)
 

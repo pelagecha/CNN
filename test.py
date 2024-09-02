@@ -10,15 +10,18 @@ from models.multihead_attention import Model
 import helpers
 import json
 
-dataset_name = "CIFAR10"                                      # Dataset to use ("CIFAR10" or "MNIST")
+dataset_name = "CIFAR100"  # Dataset to use ("CIFAR10" or "CIFAR100")
 
-with open('settings.json', 'r') as f: dataset_settings = json.load(f)
-settings = dataset_settings[dataset_name]                     # Settings for the selected dataset
+# Load dataset settings
+with open('settings.json', 'r') as f: 
+    dataset_settings = json.load(f)
+settings = dataset_settings[dataset_name]  # Settings for the selected dataset
 
-device = helpers.select_processor()                           # Select compatible device
+device = helpers.select_processor()  # Select compatible device
 model = Model(input_size=settings["input_size"], 
-            num_classes=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
-device = helpers.select_processor()
+               num_classes=settings["num_classes"]).to(device)  # Initialize model with dataset-specific settings
+
+# Load the model
 model_path, _ = helpers.model_dirs(model.model_name())
 model.load_state_dict(torch.load(model_path, weights_only=False, map_location=device))
 model.eval()  # Set the model to evaluation mode
@@ -29,18 +32,33 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-# Load CIFAR-10 dataset
-train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+# Load CIFAR-100 dataset
+if dataset_name == "CIFAR10":
+    dataset_class = torchvision.datasets.CIFAR10
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+elif dataset_name == "CIFAR100":
+    dataset_class = torchvision.datasets.CIFAR100
+    classes = (
+        'apple', 'aquarium_fish', 'bed', 'bee', 'beetle', 'bottle', 'bowl', 'bramble', 'bus', 'cabinet',
+        'can', 'cap', 'car', 'chair', 'clock', 'computer', 'couch', 'crab', 'cup', 'dolphin',
+        'elephant', 'emu', 'fan', 'fig', 'fire_engine', 'flamingo', 'flashlight', 'forest', 'fork', 'four-poster',
+        'fountain', 'garbage_truck', 'giraffe', 'goose', 'grand_piano', 'hammer', 'harp', 'hat', 'headphones', 'helicopter',
+        'ice_cream', 'jacket', 'jigsaw_puzzle', 'kangaroo', 'ketchup', 'keyboard', 'lamp', 'laptop', 'lemon', 'lion',
+        'microphone', 'microwave', 'mushroom', 'nail', 'net', 'orange', 'ostrich', 'owl', 'panda', 'parrot',
+        'piano', 'pizza', 'playground', 'purse', 'rabbit', 'raccoon', 'refrigerator', 'remote_control', 'rocket', 'rug',
+        'sailboat', 'saxophone', 'scissors', 'skateboard', 'skis', 'snowboard', 'soccer_ball', 'spider', 'sponge',
+        'squirrel', 'starfish', 'steering_wheel', 'stove', 'submarine', 'suitcase', 'table', 'tank', 'telephone', 'television',
+        'tiger', 'toaster', 'train', 'trumpet', 'tulip', 'umbrella', 'van', 'vase', 'watermelon', 'wheelchair',
+        'willow_tree', 'zebra'
+    )
+
+train_dataset = dataset_class(root='./data', train=True, download=True, transform=transform)
+test_dataset = dataset_class(root='./data', train=False, download=True, transform=transform)
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=4, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4, shuffle=True)
 
-# Define class names
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
 # Evaluate the model on the test set
-model.to(device)
 test_accuracy = helpers.eval(model, test_loader, device)
 print(f'Accuracy of the network on the 10000 test images: {test_accuracy:.2f}%')
 
@@ -77,13 +95,13 @@ def visualize_predictions(loader, model, classes):
     images = torch.clamp(images, 0, 1)  # Ensure values are within [0, 1]
 
     # Plot the images with predicted labels
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(15, 15))
     for idx in range(len(images)):
-        ax = fig.add_subplot(1, len(images), idx+1, xticks=[], yticks=[])
-        
+        ax = fig.add_subplot(1, len(images), idx + 1, xticks=[], yticks=[])
+
         # Convert tensor to PIL Image
         img = transforms.ToPILImage()(images[idx])
-        
+
         # Check for invalid values in the image tensor
         npimg = np.array(img)
         if np.isnan(npimg).any() or np.isinf(npimg).any():
@@ -93,9 +111,8 @@ def visualize_predictions(loader, model, classes):
         # Display the image
         ax.imshow(npimg)
         ax.set_title(f'{classes[predicted[idx]]}\n({classes[labels[idx]]})')
-    
-    plt.show()
 
+    plt.show()
 
 # Example usage (ensure you have a DataLoader 'test_loader' and model loaded)
 visualize_predictions(test_loader, model, classes)

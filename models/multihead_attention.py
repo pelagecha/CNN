@@ -114,4 +114,4 @@ class Model(nn.Module):
     
     @staticmethod
     def model_name():
-        return "cnnResidualMultiheadAttention90"
+        return "multihead_attention"
