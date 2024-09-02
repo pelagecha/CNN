@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
-from models.cnnBatchNorm86 import Model
+from models.cnnBatchNorm90 import Model
 import helpers
 import json
 
@@ -19,7 +19,6 @@ device = helpers.select_processor()                           # Select compatibl
 model = Model(input_size=settings["input_size"], 
             num_classes=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
 device = helpers.select_processor()
-PATH = 'trained/model80'
 model_path, _ = helpers.model_dirs(model.model_name())
 model.load_state_dict(torch.load(model_path, weights_only=False, map_location=device))
 model.eval()  # Set the model to evaluation mode

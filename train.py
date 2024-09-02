@@ -16,7 +16,7 @@ import numpy as np
 from tqdm import tqdm # Progress bar for loops
 import helpers                                          
 
-from models.cnnBatchNorm86 import Model # select the model to use
+from models.residual_attention import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
@@ -32,7 +32,7 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 512                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 200                                              # Total number of epochs for training
+num_epochs = 100                                             # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
@@ -133,6 +133,8 @@ print(f'  Accuracy: {test_accuracy:.2f}%\n')
 helpers.save(model.state_dict(), model_path, test_accuracy, accuracy_path)
 
 print("Finished Training")
-
+with open("losses.txt", "a+") as f:
+    f.write(f"--{model.model_name()}-- at {test_accuracy:.2f}\n{train_losses}")
 # Plotting the loss curve
 helpers.show_loss(train_losses)
+
