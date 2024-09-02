@@ -3,6 +3,10 @@ import os
 import matplotlib.pyplot as plt
 import json
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader    
+import torchvision
+from datetime import datetime
+
 
 def select_processor():
     if torch.backends.mps.is_available():
@@ -104,13 +108,20 @@ def eval(model, test_loader, device):
 
     return test_accuracy
 
-def show_loss(train_losses):
+def show_loss(train_losses, model_name, dataset_name, save_dir='./graphs'):
     """
-    Plots the training loss curve.
+    Plots the training loss curve and saves the plot to a file.
+    """
+    # Ensure the save directory exists
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-    Args:
-        train_losses (list): List of training losses recorded over epochs.
-    """
+    # Create filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{model_name}_{dataset_name}_{timestamp}.png"
+    filepath = os.path.join(save_dir, filename)
+    
+    # Plot the training losses
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Training Loss', marker='o')
     plt.xlabel('Epochs')
@@ -118,7 +129,12 @@ def show_loss(train_losses):
     plt.title('Training Loss over Epochs')
     plt.legend()
     plt.grid(True)  # Add grid for better readability
-    plt.show()
+    
+    # Save the plot
+    plt.savefig(filepath)
+    plt.close()  # Close the plot to free up memory
+
+    print(f"Loss plot saved to {filepath}")
 
 def show_accuracy(test_accuracies):
     """
@@ -136,3 +152,31 @@ def show_accuracy(test_accuracies):
     plt.grid(True)  # Add grid for better readability
     plt.show()
 
+def get_loaders(dataset_name, transform, batch_size):
+    if dataset_name == "MNIST":
+        train_dataset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+        test_dataset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    elif dataset_name == "CIFAR10":
+        train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+        test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+    elif dataset_name == "CIFAR100":
+        train_dataset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform)
+        test_dataset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform)
+    elif dataset_name == "FashionMNIST":
+        train_dataset = torchvision.datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+        test_dataset = torchvision.datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    elif dataset_name == "ImageNet":
+        train_dataset = torchvision.datasets.ImageNet(root='./data', split='train', download=True, transform=transform)
+        test_dataset = torchvision.datasets.ImageNet(root='./data', split='val', download=True, transform=transform)
+    elif dataset_name == "STL10":
+        train_dataset = torchvision.datasets.STL10(root='./data', split='train', download=True, transform=transform)
+        test_dataset = torchvision.datasets.STL10(root='./data', split='test', download=True, transform=transform)
+    elif dataset_name == "SVHN":
+        train_dataset = torchvision.datasets.SVHN(root='./data', split='train', download=True, transform=transform)
+        test_dataset = torchvision.datasets.SVHN(root='./data', split='test', download=True, transform=transform)
+    
+    # Create data loaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
+    return train_loader, test_loader, train_dataset, test_dataset
