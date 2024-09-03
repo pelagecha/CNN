@@ -8,19 +8,18 @@ import torch.nn.functional as F
 import torch.utils                                      
 import torch.utils.data                                 
 from torch.utils.data import DataLoader                 
-
-import torchvision                                      
+                              
 import torchvision.transforms as transforms            
 import matplotlib.pyplot as plt                         
 import numpy as np                                      
 from tqdm import tqdm 
 import helpers                                          
 
-from models.multihead_attention import Model # select the model to use
+from models.seblock import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "MNIST"                                        # Dataset to use ("CIFAR10" or "MNIST")
+dataset_name = "CIFAR10"                                        # Dataset to use ("CIFAR10" or "MNIST")
 device = helpers.select_processor()                           # Select compatible device
 retrain = False                                               # Select whether to start learning from scratch (False)
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)
@@ -30,9 +29,10 @@ model = Model(input_size=settings["input_size"],
             num_classes=settings["num_classes"]).to(device)   # Initialize model with dataset-specific settings
 
 # Hyperparameters
-batch_size = 512                                              # Number of samples per batch
+batch_size = 256                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 10                                                # Total number of epochs for training
+
+num_epochs = 1                                                # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
@@ -66,6 +66,13 @@ else:
 # -------------------------------------------------------------------------------------------------------------
 
 
+# # Find optimal learning rate
+# lr = helpers.optimal_lr(model=model, train_loader=train_loader, dataset_name=dataset_name, train_dataset=train_dataset, scheduler=scheduler, device=device, criterion=criterion, optimiser=optimiser)
+# print(f"Optimal learning rate: {lr}")
+
+# # Re-initialize the optimizer with the optimal learning rate
+# optimiser = torch.optim.AdamW(model.parameters(), lr=lr)
+
 # Training loop
 for epoch in range(num_epochs):
     running_loss = 0.0
@@ -86,14 +93,13 @@ for epoch in range(num_epochs):
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
-            optimiser.step()                                                  # Optimization step
-            running_loss += loss.item() * images.size(0)                      # Accumulate loss
-            average_loss = running_loss / ((i + 1) * train_loader.batch_size) # Compute average loss for the current batch
+            optimiser.step()  # Optimization step
+            running_loss += loss.item() * images.size(0)  # Accumulate loss
+            average_loss = running_loss / ((i + 1) * batch_size)  # Compute average loss for the current batch
 
             # Update progress bar
             pbar.update(1)
-            pbar.set_postfix({'Loss': f'{loss:.4f}'})
-        pbar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
+            pbar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
 
     # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)
@@ -101,8 +107,6 @@ for epoch in range(num_epochs):
 
     # Step the scheduler after each epoch
     scheduler.step()
-
-
 
 # Evaluate on the test dataset
 test_accuracy = helpers.eval(model, test_loader, device)
@@ -118,7 +122,6 @@ helpers.save(model.state_dict(), model_path, test_accuracy, accuracy_path)
 print("Finished Training")
 with open("losses.txt", "a+") as f:
     f.write(f"--{model.model_name()}-- at {test_accuracy:.2f}% accuracy and a {epoch_loss:.4f} loss\n{train_losses}\n")
+
 # Plotting the loss curve
 helpers.show_loss(train_losses, model.model_name(), dataset_name)
-
-

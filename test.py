@@ -10,7 +10,8 @@ from models.multihead_attention import Model
 import helpers
 import json
 
-dataset_name = "CIFAR100"  # Dataset to use ("CIFAR10" or "CIFAR100")
+dataset_name = "MNIST"  # Dataset to use ("CIFAR10" or "CIFAR100")
+batch_size = 256                                              # Number of samples per batch
 
 # Load dataset settings
 with open('settings.json', 'r') as f: 
@@ -22,7 +23,7 @@ model = Model(input_size=settings["input_size"],
                num_classes=settings["num_classes"]).to(device)  # Initialize model with dataset-specific settings
 
 # Load the model
-model_path, _ = helpers.model_dirs(model.model_name())
+model_path, _ = helpers.model_dirs(model.model_name(), dataset_name)
 model.load_state_dict(torch.load(model_path, weights_only=False, map_location=device))
 model.eval()  # Set the model to evaluation mode
 
@@ -52,11 +53,8 @@ elif dataset_name == "CIFAR100":
         'willow_tree', 'zebra'
     )
 
-train_dataset = dataset_class(root='./data', train=True, download=True, transform=transform)
-test_dataset = dataset_class(root='./data', train=False, download=True, transform=transform)
+train_loader, test_loader, train_dataset, test_dataset = helpers.get_loaders(dataset_name=dataset_name, transform=transform, batch_size=batch_size)
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=4, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=4, shuffle=True)
 
 # Evaluate the model on the test set
 test_accuracy = helpers.eval(model, test_loader, device)

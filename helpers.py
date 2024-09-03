@@ -6,7 +6,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader    
 import torchvision
 from datetime import datetime
-
+from tqdm import tqdm 
+import math
 
 def select_processor():
     if torch.backends.mps.is_available():
@@ -136,6 +137,8 @@ def show_loss(train_losses, model_name, dataset_name, save_dir='./graphs'):
 
     print(f"Loss plot saved to {filepath}")
 
+
+
 def show_accuracy(test_accuracies):
     """
     Plots the test accuracy curve.
@@ -180,3 +183,93 @@ def get_loaders(dataset_name, transform, batch_size):
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
     return train_loader, test_loader, train_dataset, test_dataset
+
+
+
+def optimal_lr(model, train_loader, dataset_name, train_dataset, scheduler, device, criterion, optimiser):
+    # --------------------- finding optimal lr --------------------------
+    num_lr_steps = 1000
+    start_lr = 1e-4
+    end_lr = 1.0
+    lrs = torch.linspace(start_lr, end_lr, num_lr_steps)  # Linear range of learning rates
+    lri = []  # Learning rates used
+    lossi = []  # Losses recorded
+
+    num_batches = len(train_loader)
+    num_epochs = math.ceil(num_lr_steps / num_batches)
+    print(f"Going to run {num_epochs} epochs to find the perfect learning rate!")
+
+    lr_ind = 0
+
+    for epoch in range(num_epochs):
+        running_loss = 0.0
+        model.train()  # Set model to training mode
+
+        # Initialize the progress bar for the epoch
+        with tqdm(total=num_batches, desc=f'Epoch [{epoch + 1}/{num_epochs}]', unit='step') as pbar:
+            for i, (images, labels) in enumerate(train_loader):
+                images = images.to(device)
+                labels = labels.to(device)
+                
+                if lr_ind >= num_lr_steps:
+                    break
+                
+                # Update learning rate for this iteration
+                lr = lrs[lr_ind]
+                for param_group in optimiser.param_groups:
+                    param_group['lr'] = lr
+
+                # Forward pass
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+
+                # Backward pass
+                optimiser.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
+                optimiser.step()  # Optimization step
+
+                # Record the learning rate and the loss
+                lri.append(lrs[lr_ind].item())
+                lossi.append(loss.item())
+
+                running_loss += loss.item() * images.size(0)  # Accumulate loss
+                average_loss = running_loss / ((i + 1) * train_loader.batch_size)  # Compute average loss for the current batch
+
+                # Update progress bar
+                pbar.update(1)
+                pbar.set_postfix({'LR': f'{lr:.4e}', 'Loss': f'{average_loss:.4f}'})
+
+                lr_ind += 1
+
+    # Plotting the results
+    save_dir = './graphs'
+    plt.plot(lri, lossi)
+    plt.xlabel('Learning Rate')
+    plt.ylabel('Loss')
+    plt.title('Learning Rate Finder')
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Create filename with timestamp
+    filename = f"{model.__class__.__name__}_{dataset_name}_loss.png"
+    filepath = os.path.join(save_dir, filename)
+
+    # Save the plot
+    plt.savefig(filepath)
+    plt.close()  # Close the plot to free up memory
+
+    # Finding the optimal learning rate
+    min_so_far = [start_lr, float("inf")]  # lr, loss
+    sliding_window_width = 20
+    
+    for i in range(len(lossi) - sliding_window_width):
+        window = lossi[i:i + sliding_window_width]
+        avg = sum(window) / sliding_window_width
+        if avg < min_so_far[1]:
+            min_so_far = [lri[i + sliding_window_width // 2], avg]
+
+    optimal_lr_value = min_so_far[0]
+    print(f"Found optimal learning rate value: {optimal_lr_value}")
+    return optimal_lr_value

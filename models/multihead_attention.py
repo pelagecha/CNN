@@ -12,7 +12,7 @@ conv3_out = 256
 conv4_out = 512  # Adding an additional convolutional layer
 linear1 = 1024  # Increasing linear layer size for more capacity
 linear2 = 512
-dropout_prob = 0.5  # Increased dropout for regularization
+dropout_rate= 0.1  # Increased dropout for regularization
 num_heads = 8  # Number of attention heads
 
 class ResidualBlock(nn.Module):
@@ -74,7 +74,7 @@ class Model(nn.Module):
         self.fc2 = nn.Linear(linear1, linear2)
         self.fc3 = nn.Linear(linear2, self.num_classes)
 
-        self.dropout = nn.Dropout(p=dropout_prob)
+        self.dropout = nn.Dropout(p=dropout_rate)
 
     def _forward_conv(self, x):
         # Forward pass through the residual blocks
