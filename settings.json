@@ -65,5 +65,15 @@
             "normalize_std": [0.198, 0.201, 0.197],
             "augmentations": ["ToTensor"]
         }
+    },
+    "CANCER": {
+        "input_size": [3, 32, 32],
+        "num_classes": 10,
+        "transform": {
+            "resize": [32, 32],
+            "normalize_mean": [0.4377, 0.4438, 0.4728],
+            "normalize_std": [0.198, 0.201, 0.197],
+            "augmentations": ["ToTensor"]
+        }
     }
 }

@@ -119,4 +119,4 @@ class Model(nn.Module):
 
     @staticmethod
     def model_name():
-        return "seblock_model"
+        return "seblock"

@@ -19,11 +19,11 @@ class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
         super(ResidualBlock, self).__init__()
         
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False) # changed to False
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU()
         
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, stride, padding)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, stride, padding, bias=False) # changed to False
         self.bn2 = nn.BatchNorm2d(out_channels)
         
         # If the input and output channels differ, we use a 1x1 convolution to match them

@@ -8,6 +8,7 @@ import torchvision
 from datetime import datetime
 from tqdm import tqdm 
 import math
+from torchvision.datasets import ImageFolder
 
 def select_processor():
     if torch.backends.mps.is_available():
@@ -33,12 +34,6 @@ def model_dirs(model_name, dataset_name): # manage the paths for trained models
 def save(model_state_dict, model_path, test_accuracy, accuracy_path):
     """
     Saves the model state and accuracy. Only saves if the new accuracy is better.
-    
-    Args:
-        model_state_dict (dict): State dictionary of the model.
-        model_path (str): Path to save the model.
-        test_accuracy (float): Accuracy of the model on the test set.
-        accuracy_path (str): Path to save the accuracy.
     """
     try:
         # Try to load previous accuracy
@@ -56,15 +51,43 @@ def save(model_state_dict, model_path, test_accuracy, accuracy_path):
         torch.save(test_accuracy, accuracy_path)
 
 
+# def save1(model_state_dict, optimizer_state_dict, scheduler_state_dict, train_losses, model_path, test_accuracy, accuracy_path):
+#     try:
+#         # Try to load previous accuracy
+#         prev_accuracy = torch.load(accuracy_path)
+#         if test_accuracy > prev_accuracy:
+#             print("New accuracy is better. Saving model...")
+#             torch.save({
+#                 'model_state_dict': model_state_dict,
+#                 'optimizer_state_dict': optimizer_state_dict,
+#                 'scheduler_state_dict': scheduler_state_dict,
+#                 'train_losses': train_losses,
+#             }, model_path)
+#             torch.save(test_accuracy, accuracy_path)
+#         else:
+#             print("New accuracy is worse. No changes made.")
+#     except FileNotFoundError:
+#         # No previous accuracy file found, save the new model and accuracy
+#         print("No previous accuracy file found. Saving new model...")
+#         torch.save({
+#             'model_state_dict': model_state_dict,
+#             'optimizer_state_dict': optimizer_state_dict,
+#             'scheduler_state_dict': scheduler_state_dict,
+#             'train_losses': train_losses,
+#         }, model_path)
+#         torch.save(test_accuracy, accuracy_path)
+
+
+
 def transform_init(dataset_name):
     with open('settings.json', 'r') as f: 
         dataset_settings = json.load(f)
 
-    settings = dataset_settings[dataset_name] # settings for the dataset that's used, like image dimensions etc
+    settings = dataset_settings[dataset_name]
     transform_settings = settings["transform"]
     input_size = settings["input_size"]
     transform_list = []
-    
+
     for augmentation in transform_settings["augmentations"]:
         if augmentation == "RandomHorizontalFlip":
             transform_list.append(transforms.RandomHorizontalFlip())
@@ -73,12 +96,17 @@ def transform_init(dataset_name):
         elif augmentation == "ToTensor":
             transform_list.append(transforms.ToTensor())
 
+    # Add resizing as the first transformation
+    transform_list.insert(0, transforms.Resize((input_size[1], input_size[2])))
+    
     # Add normalization as the last transform
     transform_list.append(transforms.Normalize(
         mean=transform_settings["normalize_mean"],
         std=transform_settings["normalize_std"]
     ))
+    
     return transform_list
+
 
 def eval(model, test_loader, device):
     """
@@ -139,21 +167,31 @@ def show_loss(train_losses, model_name, dataset_name, save_dir='./graphs'):
 
 
 
-def show_accuracy(test_accuracies):
+def show_accuracy(train_accuracies, model_name, dataset_name, save_dir='./graphs'):
     """
     Plots the test accuracy curve.
-
-    Args:
-        test_accuracies (list): List of test accuracies recorded over epochs.
     """
+
+    # Ensure the save directory exists
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Create filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{model_name}_{dataset_name}_{timestamp}.png"
+    filepath = os.path.join(save_dir, filename)
+
     plt.figure(figsize=(10, 5))
-    plt.plot(test_accuracies, label='Test Accuracy', marker='o')
+    plt.plot(train_accuracies, label='Test Accuracy', marker='o')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy (%)')
     plt.title('Test Accuracy over Epochs')
     plt.legend()
     plt.grid(True)  # Add grid for better readability
-    plt.show()
+
+    # Save the plot
+    plt.savefig(filepath)
+    plt.close()  # Close the plot to free up memory
 
 def get_loaders(dataset_name, transform, batch_size):
     if dataset_name == "MNIST":
@@ -177,6 +215,20 @@ def get_loaders(dataset_name, transform, batch_size):
     elif dataset_name == "SVHN":
         train_dataset = torchvision.datasets.SVHN(root='./data', split='train', download=True, transform=transform)
         test_dataset = torchvision.datasets.SVHN(root='./data', split='test', download=True, transform=transform)
+    elif dataset_name == "CANCER":
+        train_path = './download/cancer/train' # HACK need to find a way to download using link
+        test_path = './download/cancer/test'   # HACK need to find a way to download using link
+        if os.path.exists(train_path) and os.path.isdir(train_path) and any(os.scandir(train_path)):
+            if os.path.exists(test_path) and os.path.isdir(test_path) and any(os.scandir(test_path)):
+                train_dataset = ImageFolder(root=train_path, transform=transform)
+                test_dataset = ImageFolder(root=test_path, transform=transform)
+            else:
+                print(f"Error: Testing dataset directory '{test_path}' does not exist or is empty.")
+                exit(1)  # Exit the program with an error code
+        else:
+            print(f"Error: Training dataset directory '{train_path}' does not exist or is empty.")
+            exit(1)  # Exit the program with an error code
+
     
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -186,90 +238,90 @@ def get_loaders(dataset_name, transform, batch_size):
 
 
 
-def optimal_lr(model, train_loader, dataset_name, train_dataset, scheduler, device, criterion, optimiser):
-    # --------------------- finding optimal lr --------------------------
-    num_lr_steps = 1000
-    start_lr = 1e-4
-    end_lr = 1.0
-    lrs = torch.linspace(start_lr, end_lr, num_lr_steps)  # Linear range of learning rates
-    lri = []  # Learning rates used
-    lossi = []  # Losses recorded
+# def optimal_lr(model, train_loader, dataset_name, train_dataset, scheduler, device, criterion, optimiser):
+#     # --------------------- finding optimal lr --------------------------
+#     num_lr_steps = 1000
+#     start_lr = 1e-4
+#     end_lr = 1.0
+#     lrs = torch.linspace(start_lr, end_lr, num_lr_steps)  # Linear range of learning rates
+#     lri = []  # Learning rates used
+#     lossi = []  # Losses recorded
 
-    num_batches = len(train_loader)
-    num_epochs = math.ceil(num_lr_steps / num_batches)
-    print(f"Going to run {num_epochs} epochs to find the perfect learning rate!")
+#     num_batches = len(train_loader)
+#     num_epochs = math.ceil(num_lr_steps / num_batches)
+#     print(f"Going to run {num_epochs} epochs to find the perfect learning rate!")
 
-    lr_ind = 0
+#     lr_ind = 0
 
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        model.train()  # Set model to training mode
+#     for epoch in range(num_epochs):
+#         running_loss = 0.0
+#         model.train()  # Set model to training mode
 
-        # Initialize the progress bar for the epoch
-        with tqdm(total=num_batches, desc=f'Epoch [{epoch + 1}/{num_epochs}]', unit='step') as pbar:
-            for i, (images, labels) in enumerate(train_loader):
-                images = images.to(device)
-                labels = labels.to(device)
+#         # Initialize the progress bar for the epoch
+#         with tqdm(total=num_batches, desc=f'Epoch [{epoch + 1}/{num_epochs}]', unit='step') as pbar:
+#             for i, (images, labels) in enumerate(train_loader):
+#                 images = images.to(device)
+#                 labels = labels.to(device)
                 
-                if lr_ind >= num_lr_steps:
-                    break
+#                 if lr_ind >= num_lr_steps:
+#                     break
                 
-                # Update learning rate for this iteration
-                lr = lrs[lr_ind]
-                for param_group in optimiser.param_groups:
-                    param_group['lr'] = lr
+#                 # Update learning rate for this iteration
+#                 lr = lrs[lr_ind]
+#                 for param_group in optimiser.param_groups:
+#                     param_group['lr'] = lr
 
-                # Forward pass
-                outputs = model(images)
-                loss = criterion(outputs, labels)
+#                 # Forward pass
+#                 outputs = model(images)
+#                 loss = criterion(outputs, labels)
 
-                # Backward pass
-                optimiser.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
-                optimiser.step()  # Optimization step
+#                 # Backward pass
+#                 optimiser.zero_grad()
+#                 loss.backward()
+#                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
+#                 optimiser.step()  # Optimization step
 
-                # Record the learning rate and the loss
-                lri.append(lrs[lr_ind].item())
-                lossi.append(loss.item())
+#                 # Record the learning rate and the loss
+#                 lri.append(lrs[lr_ind].item())
+#                 lossi.append(loss.item())
 
-                running_loss += loss.item() * images.size(0)  # Accumulate loss
-                average_loss = running_loss / ((i + 1) * train_loader.batch_size)  # Compute average loss for the current batch
+#                 running_loss += loss.item() * images.size(0)  # Accumulate loss
+#                 average_loss = running_loss / ((i + 1) * train_loader.batch_size)  # Compute average loss for the current batch
 
-                # Update progress bar
-                pbar.update(1)
-                pbar.set_postfix({'LR': f'{lr:.4e}', 'Loss': f'{average_loss:.4f}'})
+#                 # Update progress bar
+#                 pbar.update(1)
+#                 pbar.set_postfix({'LR': f'{lr:.4e}', 'Loss': f'{average_loss:.4f}'})
 
-                lr_ind += 1
+#                 lr_ind += 1
 
-    # Plotting the results
-    save_dir = './graphs'
-    plt.plot(lri, lossi)
-    plt.xlabel('Learning Rate')
-    plt.ylabel('Loss')
-    plt.title('Learning Rate Finder')
+#     # Plotting the results
+#     save_dir = './graphs'
+#     plt.plot(lri, lossi)
+#     plt.xlabel('Learning Rate')
+#     plt.ylabel('Loss')
+#     plt.title('Learning Rate Finder')
 
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+#     if not os.path.exists(save_dir):
+#         os.makedirs(save_dir)
 
-    # Create filename with timestamp
-    filename = f"{model.__class__.__name__}_{dataset_name}_loss.png"
-    filepath = os.path.join(save_dir, filename)
+#     # Create filename with timestamp
+#     filename = f"{model.__class__.__name__}_{dataset_name}_loss.png"
+#     filepath = os.path.join(save_dir, filename)
 
-    # Save the plot
-    plt.savefig(filepath)
-    plt.close()  # Close the plot to free up memory
+#     # Save the plot
+#     plt.savefig(filepath)
+#     plt.close()  # Close the plot to free up memory
 
-    # Finding the optimal learning rate
-    min_so_far = [start_lr, float("inf")]  # lr, loss
-    sliding_window_width = 20
+#     # Finding the optimal learning rate
+#     min_so_far = [start_lr, float("inf")]  # lr, loss
+#     sliding_window_width = 20
     
-    for i in range(len(lossi) - sliding_window_width):
-        window = lossi[i:i + sliding_window_width]
-        avg = sum(window) / sliding_window_width
-        if avg < min_so_far[1]:
-            min_so_far = [lri[i + sliding_window_width // 2], avg]
+#     for i in range(len(lossi) - sliding_window_width):
+#         window = lossi[i:i + sliding_window_width]
+#         avg = sum(window) / sliding_window_width
+#         if avg < min_so_far[1]:
+#             min_so_far = [lri[i + sliding_window_width // 2], avg]
 
-    optimal_lr_value = min_so_far[0]
-    print(f"Found optimal learning rate value: {optimal_lr_value}")
-    return optimal_lr_value
+#     optimal_lr_value = min_so_far[0]
+#     print(f"Found optimal learning rate value: {optimal_lr_value}")
+#     return optimal_lr_value
