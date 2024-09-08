@@ -102,6 +102,8 @@ for epoch in range(num_epochs):
             # Update progress bar
             pbar.update(1)
             pbar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
+            current_lr = scheduler.get_last_lr()[0]  # Get the first element if you have a single parameter group
+            pbar.set_postfix({'LR': f'{current_lr:.4f}'})
 
     # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)
