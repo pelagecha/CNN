@@ -20,7 +20,7 @@ from models.multihead_attention import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "CANCER"                                        # Dataset to use ("CIFAR10", "MNIST" etc.)
+dataset_name = "CANCER"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
 device = helpers.select_processor()                           # Select compatible device
 retrain = False                                               # Select whether to start learning from scratch (False)
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)
@@ -32,19 +32,19 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 256                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-
-num_epochs = 50                                                # Total number of epochs for training
+num_epochs = 25                                               # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
 
 # Optimizer
-optimiser = torch.optim.AdamW(model.parameters(), lr=lr)      # AdamW optimizer with weight decay for regularization
+optimiser = torch.optim.Adam(model.parameters(), lr=lr)       # AdamW optimizer with weight decay for regularization
 
 # Learning Rate Scheduler
-scheduler = torch.optim.lr_scheduler.StepLR(optimiser, 
-                                             step_size=5,    # Frequency (in epochs) to update the learning rate
-                                             gamma=0.1)      # Factor by which the learning rate is reduced
+# scheduler = torch.optim.lr_scheduler.StepLR(optimiser, 
+#                                              step_size=5,     # Frequency (in epochs) to update the learning rate
+#                                              gamma=0.1)       # Factor by which the learning rate is reduced
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=3, threshold=0.0001, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 
 # Model Paths
 model_path, accuracy_path = helpers.model_dirs(model.model_name(), dataset_name)  # Paths for saving model and accuracy
@@ -108,7 +108,7 @@ for epoch in range(num_epochs):
     train_losses.append(epoch_loss)
 
     # Step the scheduler after each epoch
-    scheduler.step()
+    scheduler.step(epoch_loss)
     test_accuracy = helpers.eval(model, test_loader, device)
     train_accuracies.append(test_accuracy)
 # ------------------------------------------------------------------------------------------------------
