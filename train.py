@@ -41,10 +41,11 @@ criterion = nn.CrossEntropyLoss(label_smoothing=0.1)          # Loss function fo
 optimiser = torch.optim.AdamW(model.parameters(), lr=lr)       # AdamW optimizer with weight decay for regularization
 
 # Learning Rate Scheduler
-scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=num_epochs//5, gamma=0.5)       # Factor by which the learning rate is reduced
+# scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=num_epochs//1.2, gamma=0.1)       # Factor by which the learning rate is reduced
 # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=num_epochs)
 # scheduler = torch.optim.lr_scheduler.CyclicLR(optimiser, base_lr=1e-5, max_lr=1e-3, step_size_up=5)
+scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=10, gamma=0.7)
 
 
 
@@ -75,8 +76,6 @@ else:
 
 # -------------------------------------------------------------------------------------------------------------
 
-
-
 # Training loop
 for epoch in range(num_epochs):
     running_loss = 0.0
@@ -96,24 +95,33 @@ for epoch in range(num_epochs):
             optimiser.zero_grad()
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
-            optimiser.step()                                                  # Optimization step
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-            running_loss += loss.item()                      # Accumulate loss
-            # average_loss = running_loss / ((i + 1) * train_loader.batch_size) # Compute average loss for the current batc
+            # Optimization step
+            optimiser.step()
+
+            # Accumulate loss
+            running_loss += loss.item() * images.size(0)
+
+            # Compute average loss for the current batch
+            average_loss = running_loss / ((i + 1) * train_loader.batch_size)
 
             # Update progress bar
             pbar.update(1)
-            pbar.set_postfix({'LR': f'{scheduler.get_last_lr()[0]:.4f}', 'Loss': f'{running_loss / (i + 1):.4f}'}) # Average loss up to current batch
+            pbar.set_postfix({'LR': f'{scheduler.get_last_lr()[0]:.4f}', 'Avg Loss': f'{average_loss:.4f}'})
 
     # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)
     train_losses.append(epoch_loss)
 
-    # Step the scheduler after each epoch
-    scheduler.step() # pass epoch_loss in for plateau scheduler
     test_accuracy = helpers.eval(model, test_loader, device)
     train_accuracies.append(test_accuracy)
+
+    # Step the scheduler after each epoch
+    scheduler.step()
+
+
 # ------------------------------------------------------------------------------------------------------
 # plt.plot(train_accuracies)
 # plt.show()

@@ -6,11 +6,12 @@ import torchvision.transforms as transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
-from models.multihead_attention1 import Model
 import helpers
 import json
 
-dataset_name = "CANCER"  # Dataset to use ("CIFAR10" or "CIFAR100")
+from models.cnn50 import Model
+
+dataset_name = "CIFAR10"  # Dataset to use ("CIFAR10" or "CIFAR100")
 batch_size = 256                                              # Number of samples per batch
 
 # Load dataset settings
