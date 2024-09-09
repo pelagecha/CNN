@@ -10,10 +10,13 @@ conv1_out = 64
 conv2_out = 128
 conv3_out = 256
 conv4_out = 512  # Adding an additional convolutional layer
-linear1 = 1024  # Increasing linear layer size for more capacity
-linear2 = 512
-dropout_rate= 0.5  # Increased dropout for regularization
-num_heads = 12  # Number of attention heads
+linear1 = 512  # Increasing linear layer size for more capacity
+linear2 = 1024
+linear3 = 1024
+linear4 = 512
+linear5 = 256
+dropout_rate= 0.15  # Increased dropout for regularization
+num_heads = 4  # Number of attention heads
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
@@ -49,16 +52,14 @@ class Model(nn.Module):
         self.input_size = input_size
         self.num_classes = num_classes
 
-        # Update the number of residual blocks
+        # Replace the convolutional layers with residual blocks
         self.res_block1 = ResidualBlock(input_size[0], conv1_out, kernel_size, padding=1)
         self.res_block2 = ResidualBlock(conv1_out, conv2_out, kernel_size, padding=1)
         self.res_block3 = ResidualBlock(conv2_out, conv3_out, kernel_size, padding=1)
         self.res_block4 = ResidualBlock(conv3_out, conv4_out, kernel_size, padding=1)
-        self.res_block5 = ResidualBlock(conv4_out, conv4_out, kernel_size, padding=1)  # New block
-        self.res_block6 = ResidualBlock(conv4_out, conv4_out, kernel_size, padding=1)  # New block
 
         # Multi-head attention mechanism
-        self.flatten = nn.Flatten(start_dim=2)
+        self.flatten = nn.Flatten(start_dim=2)  # Flatten the spatial dimensions for attention
         self.multihead_attention = nn.MultiheadAttention(embed_dim=conv4_out, num_heads=num_heads)
 
         self.pool = nn.MaxPool2d(pool_size, pool_size)
@@ -72,9 +73,12 @@ class Model(nn.Module):
         dummy_output = self._forward_conv(dummy_input)
 
         num_features = dummy_output.numel()
-        self.fc1 = nn.Linear(num_features, linear1)
-        self.fc2 = nn.Linear(linear1, linear2)
-        self.fc3 = nn.Linear(linear2, self.num_classes)
+        self.fc1 = nn.Linear(num_features, linear1, bias=True)
+        self.fc2 = nn.Linear(linear1,      linear2, bias=True)
+        self.fc3 = nn.Linear(linear2,      linear3, bias=True)
+        self.fc4 = nn.Linear(linear3,      linear4, bias=True)
+        self.fc5 = nn.Linear(linear4,      linear5, bias=True)
+        self.fc6 = nn.Linear(linear5,      self.num_classes)
 
         self.dropout = nn.Dropout(p=dropout_rate)
 
@@ -84,8 +88,6 @@ class Model(nn.Module):
         x = self.pool(self.res_block2(x))
         x = self.pool(self.res_block3(x))
         x = self.pool(self.res_block4(x))
-        x = self.pool(self.res_block5(x))  # New block
-        x = self.pool(self.res_block6(x))  # New block
 
         # Flatten the spatial dimensions (Height and Width) before multi-head attention
         b, c, h, w = x.size()
@@ -103,16 +105,25 @@ class Model(nn.Module):
     def forward(self, x):
         x = self._forward_conv(x)
         
-        # Flatten the tensor for fully connected layers
+        # Use reshape instead of view to flatten the tensor
         x = x.reshape(x.size(0), -1)
 
-        x = F.relu(self.fc1(x))
+        x = F.leaky_relu(self.fc1(x), negative_slope=0.01)
         x = self.dropout(x)
 
-        x = F.relu(self.fc2(x))
+        x = F.leaky_relu(self.fc2(x), negative_slope=0.01)
+        x = self.dropout(x)
+
+        x = F.leaky_relu(self.fc3(x), negative_slope=0.01)
+        x = self.dropout(x)
+
+        x = F.leaky_relu(self.fc4(x), negative_slope=0.01)
+        x = self.dropout(x)
+
+        x = F.leaky_relu(self.fc5(x), negative_slope=0.01)
         x = self.dropout(x)
         
-        x = self.fc3(x)
+        x = self.fc6(x)
         return x
 
     

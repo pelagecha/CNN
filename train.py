@@ -44,7 +44,7 @@ optimiser = torch.optim.AdamW(model.parameters(), lr=lr)       # AdamW optimizer
 # scheduler = torch.optim.lr_scheduler.StepLR(optimiser, 
 #                                              step_size=5,     # Frequency (in epochs) to update the learning rate
 #                                              gamma=0.1)       # Factor by which the learning rate is reduced
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.5, patience=3, threshold=0.5, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 
 # Model Paths
 model_path, accuracy_path = helpers.model_dirs(model.model_name(), dataset_name)  # Paths for saving model and accuracy

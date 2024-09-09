@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
-from models.multihead_attention import Model
+from models.multihead_attention1 import Model
 import helpers
 import json
 
