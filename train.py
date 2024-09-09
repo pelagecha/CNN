@@ -16,7 +16,7 @@ from tqdm import tqdm
 import time
 import helpers                                          
 
-from models.multihead_attention import Model # select the model to use
+from models.seblock import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
@@ -32,7 +32,7 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 256                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 200                                              # Total number of epochs for training
+num_epochs = 20                                              # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
