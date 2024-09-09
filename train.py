@@ -20,7 +20,7 @@ from models.multihead_attention1 import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "CANCER"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
+dataset_name = "CIFAR10"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
 device = helpers.select_processor()                           # Select compatible device
 retrain = False                                               # Select whether to start learning from scratch (False)
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)

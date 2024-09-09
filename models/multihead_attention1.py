@@ -12,8 +12,8 @@ conv3_out = 256
 conv4_out = 512  # Adding an additional convolutional layer
 linear1 = 1024  # Increasing linear layer size for more capacity
 linear2 = 512
-dropout_rate= 0.2  # Increased dropout for regularization
-num_heads = 8  # Number of attention heads
+dropout_rate= 0.3  # Increased dropout for regularization
+num_heads = 16  # Number of attention heads
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
