@@ -137,7 +137,7 @@ def eval(model, test_loader, device):
 
     return test_accuracy
 
-def show_loss(train_losses, model_name, dataset_name, save_dir='./graphs'):
+def show_loss(track, model_name, dataset_name, name="Loss", save_dir='./graphs'):
     """
     Plots the training loss curve and saves the plot to a file.
     """
@@ -152,10 +152,10 @@ def show_loss(train_losses, model_name, dataset_name, save_dir='./graphs'):
     
     # Plot the training losses
     plt.figure(figsize=(10, 5))
-    plt.plot(train_losses, label='Training Loss', marker='o')
+    plt.plot(track, label='Training Loss', marker='o')
     plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.title('Training Loss over Epochs')
+    plt.ylabel(name)
+    plt.title(f'Training {name} over Epochs')
     plt.legend()
     plt.grid(True)  # Add grid for better readability
     
@@ -165,33 +165,6 @@ def show_loss(train_losses, model_name, dataset_name, save_dir='./graphs'):
 
     print(f"Loss plot saved to {filepath}")
 
-
-
-def show_accuracy(train_accuracies, model_name, dataset_name, save_dir='./graphs'):
-    """
-    Plots the test accuracy curve.
-    """
-
-    # Ensure the save directory exists
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-
-    # Create filename with timestamp
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{model_name}_{dataset_name}_{timestamp}.png"
-    filepath = os.path.join(save_dir, filename)
-
-    plt.figure(figsize=(10, 5))
-    plt.plot(train_accuracies, label='Test Accuracy', marker='o')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy (%)')
-    plt.title('Test Accuracy over Epochs')
-    plt.legend()
-    plt.grid(True)  # Add grid for better readability
-
-    # Save the plot
-    plt.savefig(filepath)
-    plt.close()  # Close the plot to free up memory
 
 def get_loaders(dataset_name, transform, batch_size):
     if dataset_name == "MNIST":
