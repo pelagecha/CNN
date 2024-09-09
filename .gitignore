@@ -4,3 +4,4 @@ models/__pycache__
 *.pyc
 *.err
 *.out
+compiled/

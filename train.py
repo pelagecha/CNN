@@ -16,7 +16,7 @@ from tqdm import tqdm
 import time
 import helpers                                          
 
-from models.seblock import Model # select the model to use
+from models.multihead_attention2 import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
