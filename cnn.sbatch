@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=cifar100 # Job name for tracking
+#SBATCH --job-name=lc_resnet # Job name for tracking
 #SBATCH --partition=falcon,gecko  # Partition you wish to use (see above for list)
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8      # Number of CPU threads used by your job
