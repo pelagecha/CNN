@@ -20,7 +20,7 @@ from models.multihead_attention2 import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "MNIST"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
+dataset_name = "CIFAR100"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
 device = helpers.select_processor()                           # Select compatible device
 retrain = False                                               # Select whether to start learning from scratch (False)
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)
@@ -31,8 +31,8 @@ model = Model(input_size=settings["input_size"],
 
 # Hyperparameters
 batch_size = 256                                              # Number of samples per batch
-lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 10                                               # Total number of epochs for training
+num_epochs = 50                                               # Total number of epochs for training
+lr = 0.001 * num_epochs/30 if num_epochs >= 10 else 0.001                                                    # Learning rate for the optimizer
 
 # Loss Function
 criterion = nn.CrossEntropyLoss(label_smoothing=0.1)          # Loss function for multi-class classification tasks, make less certain
@@ -42,10 +42,10 @@ optimiser = torch.optim.AdamW(model.parameters(), lr=lr)       # AdamW optimizer
 
 # Learning Rate Scheduler
 # scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=num_epochs//1.2, gamma=0.1)       # Factor by which the learning rate is reduced
-# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=num_epochs)
 # scheduler = torch.optim.lr_scheduler.CyclicLR(optimiser, base_lr=1e-5, max_lr=1e-3, step_size_up=5)
-scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=10, gamma=0.7)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=num_epochs/1.2, gamma=0.7)
 
 
 
@@ -80,7 +80,7 @@ else:
 for epoch in range(num_epochs):
     running_loss = 0.0
     model.train()  # Set model to training mode
-    
+
     # Initialize the progress bar for the epoch
     with tqdm(total=len(train_loader), desc=f'Epoch [{epoch + 1}/{num_epochs}]', unit='step') as pbar:
         for i, (images, labels) in enumerate(train_loader):
@@ -104,7 +104,7 @@ for epoch in range(num_epochs):
             # Accumulate loss
             running_loss += loss.item() * images.size(0)
 
-            # Compute average loss for the current batch
+            # Compute average loss for the current batch (only for progress bar display)
             average_loss = running_loss / ((i + 1) * train_loader.batch_size)
 
             # Update progress bar
@@ -115,12 +115,12 @@ for epoch in range(num_epochs):
     epoch_loss = running_loss / len(train_dataset)
     train_losses.append(epoch_loss)
 
+    # Evaluate on the test dataset
     test_accuracy = helpers.eval(model, test_loader, device)
     train_accuracies.append(test_accuracy)
 
     # Step the scheduler after each epoch
-    scheduler.step()
-
+    scheduler.step(epoch_loss)
 
 # ------------------------------------------------------------------------------------------------------
 # plt.plot(train_accuracies)
