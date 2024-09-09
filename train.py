@@ -16,7 +16,7 @@ from tqdm import tqdm
 import time
 import helpers                                          
 
-from models.multihead_attention1 import Model # select the model to use
+from models.multihead_attention2 import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
@@ -32,7 +32,7 @@ model = Model(input_size=settings["input_size"],
 # Hyperparameters
 batch_size = 256                                              # Number of samples per batch
 lr = 0.001                                                    # Learning rate for the optimizer
-num_epochs = 10                                              # Total number of epochs for training
+num_epochs = 100                                              # Total number of epochs for training
 
 # Loss Function
 criterion = nn.CrossEntropyLoss()                             # Loss function for multi-class classification tasks
@@ -41,10 +41,10 @@ criterion = nn.CrossEntropyLoss()                             # Loss function fo
 optimiser = torch.optim.AdamW(model.parameters(), lr=lr)       # AdamW optimizer with weight decay for regularization
 
 # Learning Rate Scheduler
-# scheduler = torch.optim.lr_scheduler.StepLR(optimiser, 
-#                                              step_size=5,     # Frequency (in epochs) to update the learning rate
-#                                              gamma=0.1)       # Factor by which the learning rate is reduced
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
+scheduler = torch.optim.lr_scheduler.StepLR(optimiser, 
+                                              step_size=20,     # Frequency (in epochs) to update the learning rate
+                                              gamma=0.5)       # Factor by which the learning rate is reduced
+# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
 
 # Model Paths
 model_path, accuracy_path = helpers.model_dirs(model.model_name(), dataset_name)  # Paths for saving model and accuracy
@@ -82,6 +82,7 @@ for epoch in range(num_epochs):
     
     # Initialize the progress bar for the epoch
     with tqdm(total=len(train_loader), desc=f'Epoch [{epoch + 1}/{num_epochs}]', unit='step') as pbar:
+        num_samples_seen = 0
         for i, (images, labels) in enumerate(train_loader):
             images = images.to(device)
             labels = labels.to(device)
@@ -97,14 +98,16 @@ for epoch in range(num_epochs):
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
             optimiser.step()                                                  # Optimization step
             running_loss += loss.item() * images.size(0)                      # Accumulate loss
-            average_loss = running_loss / ((i + 1) * train_loader.batch_size) # Compute average loss for the current batch
+            num_samples_seen += images.size(0)
+            average_loss = running_loss /num_samples_seen
+            # average_loss = running_loss / ((i + 1) * train_loader.batch_size) # Compute average loss for the current batch
 
             # Update progress bar
             pbar.update(1)
-            pbar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
+            # pbar.set_postfix({'Avg Loss': f'{average_loss:.4f}'})
             current_lr = scheduler.get_last_lr()[0]  # Get the first element if you have a single parameter group
             # pbar.set_postfix({'LR': f'{current_lr:.4f}'})
-            pbar.set_postfix({'LR': f'{scheduler.get_last_lr()[0]:.4f}', 'Loss': f'{loss:.4f}'})
+            pbar.set_postfix({'LR': f'{scheduler.get_last_lr()[0]:.4f}', 'Loss': f'{average_loss:.4f}'})
 
     # Compute average loss for the epoch
     epoch_loss = running_loss / len(train_dataset)
