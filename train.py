@@ -16,11 +16,11 @@ from tqdm import tqdm
 import time
 import helpers                                          
 
-from models.multihead_attention1 import Model # select the model to use
+from models.multihead_attention2 import Model # select the model to use
 
 
 # -------------------------------------------- Main Setup -----------------------------------------------------
-dataset_name = "CIFAR10"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
+dataset_name = "MNIST"                                       # Dataset to use ("CIFAR10", "MNIST" etc.)
 device = helpers.select_processor()                           # Select compatible device
 retrain = False                                               # Select whether to start learning from scratch (False)
 with open('settings.json', 'r') as f: dataset_settings = json.load(f)
@@ -41,9 +41,9 @@ criterion = nn.CrossEntropyLoss(label_smoothing=0.1)          # Loss function fo
 optimiser = torch.optim.AdamW(model.parameters(), lr=lr)       # AdamW optimizer with weight decay for regularization
 
 # Learning Rate Scheduler
-# scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=20, gamma=0.5)       # Factor by which the learning rate is reduced
+scheduler = torch.optim.lr_scheduler.StepLR(optimiser, step_size=num_epochs//5, gamma=0.5)       # Factor by which the learning rate is reduced
 # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode='min', factor=0.25, patience=3, threshold=0.025, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=num_epochs)
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=num_epochs)
 # scheduler = torch.optim.lr_scheduler.CyclicLR(optimiser, base_lr=1e-5, max_lr=1e-3, step_size_up=5)
 
 
